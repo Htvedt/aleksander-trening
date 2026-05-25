@@ -1,0 +1,25 @@
+{
+  "name": "Aleksanders Treningsprogram",
+  "short_name": "Trening",
+  "description": "Styrkeprogram for Aleksander – fotballspiller",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f3d22",
+  "theme_color": "#1a6b3a",
+  "orientation": "portrait-primary",
+  "lang": "no",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

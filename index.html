@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a6b3a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trening">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Aleksanders Trening</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f0;color:#1a1a2e;font-size:16px}
+:root{
+  --green:#1a6b3a;--green-light:#e8f5ee;--green-mid:#2d8a52;
+  --amber:#f5a623;--amber-light:#fff8ec;
+  --blue:#2563eb;--blue-light:#eff6ff;
+  --red:#dc2626;--red-light:#fef2f2;
+  --text:#1a1a2e;--muted:#6b7280;--border:#e5e7eb;--card:#fff;
+  --radius:14px;--bottom-nav:64px;
+}
+.app{display:flex;flex-direction:column;height:100%}
+.header{background:linear-gradient(135deg,#1a4d2e,#0f3d22);color:#fff;padding:env(safe-area-inset-top,0) 0 0;flex-shrink:0}
+.header-inner{padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between}
+.header-title{font-size:17px;font-weight:700}
+.header-sub{font-size:11px;opacity:.7;margin-top:1px}
+.phase-pill{background:rgba(255,255,255,.18);border-radius:20px;padding:5px 11px;font-size:11px;font-weight:600;text-align:right}
+.phase-pill span{display:block;font-size:9px;opacity:.75}
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 calc(var(--bottom-nav) + env(safe-area-inset-bottom,0) + 8px)}
+.screen{display:none;padding:16px}
+.screen.active{display:block}
+.bottom-nav{background:#fff;border-top:1px solid var(--border);display:flex;height:var(--bottom-nav);padding-bottom:env(safe-area-inset-bottom,0);flex-shrink:0;position:relative;z-index:10}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:none;color:var(--muted);font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:8px 4px;transition:color .15s}
+.nav-btn.active{color:var(--green)}
+.nav-icon{font-size:22px}
+
+/* Cards */
+.card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;margin-bottom:12px}
+.card-header{padding:12px 16px;font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+.card-header.green{background:var(--green-light)}
+.card-header.blue{background:var(--blue-light)}
+.card-header.amber{background:var(--amber-light)}
+.card-body{padding:14px 16px}
+
+/* Today card */
+.today-card{background:var(--card);border-radius:var(--radius);border:2px solid var(--green);padding:18px;margin-bottom:14px;text-align:center}
+.today-emoji{font-size:52px;margin-bottom:8px}
+.today-type{font-size:20px;font-weight:700;color:var(--green);margin-bottom:4px}
+.today-sub{font-size:13px;color:var(--muted)}
+.today-btn{margin-top:14px;background:var(--green);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;width:100%}
+.today-card.football{border-color:var(--blue)}
+.today-card.football .today-type{color:var(--blue)}
+.today-card.rest{border-color:var(--muted);opacity:.7}
+.today-card.rest .today-type{color:var(--muted)}
+.today-card.optional{border-color:var(--amber)}
+.today-card.optional .today-type{color:var(--amber)}
+
+/* Phase bar */
+.phase-bar-wrap{background:var(--border);border-radius:6px;height:8px;margin:8px 0}
+.phase-bar{background:var(--green);border-radius:6px;height:8px;transition:width .6s ease}
+
+/* Exercise list */
+.ex-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.ex-item:last-child{border-bottom:none}
+.ex-emoji{font-size:28px;width:40px;text-align:center;flex-shrink:0;margin-top:2px}
+.ex-info{flex:1}
+.ex-name{font-weight:700;font-size:14px;margin-bottom:2px}
+.ex-sets{font-size:12px;color:var(--muted);margin-bottom:3px}
+.ex-tip{font-size:11px;color:#059669;line-height:1.4;display:none}
+.ex-item.open .ex-tip{display:block}
+.ex-check{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:4px;transition:all .2s;cursor:pointer}
+.ex-check.done{background:var(--green);border-color:var(--green);color:#fff}
+.check-icon{font-size:14px;display:none}
+.ex-check.done .check-icon{display:block}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;margin-right:4px}
+.badge-str{background:#fde68a;color:#92400e}
+.badge-core{background:#d1fae5;color:#065f46}
+.badge-speed{background:#bfdbfe;color:#1e40af}
+.badge-mob{background:#ede9fe;color:#5b21b6}
+.badge-now{background:#dcfce7;color:#15803d}
+.badge-next{background:#fff7ed;color:#c2410c}
+
+/* Section title */
+.section-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 8px}
+.section-title:first-child{margin-top:0}
+
+/* Week grid */
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:14px}
+.day-box{border-radius:10px;padding:7px 3px;text-align:center;border:1px solid var(--border);background:var(--card);min-height:72px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.day-box.str{border-color:var(--green);background:var(--green-light)}
+.day-box.fb{border-color:var(--blue);background:var(--blue-light)}
+.day-box.gm{border-color:var(--amber);background:var(--amber-light)}
+.day-box.opt{border-style:dashed;border-color:#9ca3af;background:#f9fafb}
+.day-box.rst{opacity:.4}
+.day-box.today-box{box-shadow:0 0 0 2px var(--green);transform:scale(1.04)}
+.day-name{font-size:8px;font-weight:700;color:var(--muted);text-transform:uppercase}
+.day-emoji{font-size:16px;margin:2px 0}
+.day-label{font-size:9px;font-weight:700;color:var(--text)}
+.day-alt{font-size:8px;color:var(--amber);font-weight:600}
+
+/* Phase timeline */
+.phase-row{display:flex;gap:8px;margin-bottom:10px;align-items:flex-start}
+.phase-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;margin-top:4px}
+.phase-dot.done{background:var(--green);border-color:var(--green);color:#fff}
+.phase-dot.current{background:var(--amber);border-color:var(--amber);color:#fff;box-shadow:0 0 0 3px rgba(245,166,35,.25)}
+.phase-dot.future{background:var(--card)}
+.phase-line{flex:1}
+.phase-title-row{font-weight:700;font-size:14px;margin-bottom:2px}
+.phase-months{font-size:11px;color:var(--muted);margin-bottom:4px}
+.phase-goal{font-size:12px;color:var(--text);line-height:1.5}
+.milestone-list{margin-top:6px}
+.milestone{display:flex;gap:6px;font-size:11px;color:var(--muted);margin-bottom:3px;align-items:flex-start}
+.milestone.reached{color:#059669;font-weight:600}
+.milestone::before{content:"→";flex-shrink:0}
+.milestone.reached::before{content:"✓";color:#059669}
+.phase-divider{width:2px;background:var(--border);margin:0 13px;height:12px;flex-shrink:0}
+
+/* Filter pills */
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.pill{padding:6px 13px;border-radius:20px;border:1px solid var(--border);font-size:12px;font-weight:600;background:var(--card);color:var(--muted);cursor:pointer}
+.pill.active{background:var(--green);color:#fff;border-color:var(--green)}
+
+/* Completion bar */
+.completion-bar{background:var(--green-light);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.completion-count{font-weight:700;font-size:18px;color:var(--green)}
+.completion-text{font-size:12px;color:var(--muted)}
+.completion-emoji{font-size:24px;margin-left:auto}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:flex-end;justify-content:center;display:none}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;padding:20px 18px calc(env(safe-area-inset-bottom,0) + 20px)}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:6px}
+.modal-sets{font-size:14px;color:var(--muted);margin-bottom:12px}
+.modal-tip{background:var(--green-light);border-left:3px solid var(--green);border-radius:8px;padding:10px 13px;font-size:13px;color:#14532d;line-height:1.6}
+.modal-close{width:100%;margin-top:16px;padding:13px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer}
+
+/* Stats row */
+.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.stat-box{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:10px 10px;text-align:center}
+.stat-val{font-size:20px;font-weight:700;color:var(--green)}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:2px}
+
+.note-box{border-radius:10px;padding:11px 14px;font-size:12px;margin-bottom:12px;line-height:1.6;border-left:3px solid}
+.note-green{background:var(--green-light);border-color:var(--green);color:#14532d}
+.note-amber{background:var(--amber-light);border-color:var(--amber);color:#78350f}
+.note-blue{background:var(--blue-light);border-color:var(--blue);color:#1e3a8a}
+
+.session-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.session-icon{font-size:36px}
+.session-title{font-size:18px;font-weight:700}
+.session-desc{font-size:12px;color:var(--muted);margin-top:2px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-inner">
+      <div>
+        <div class="header-title">⚽ Aleksanders trening</div>
+        <div class="header-sub" id="header-date">Laster...</div>
+      </div>
+      <div class="phase-pill" id="phase-pill">
+        Fase 1<span>Grunnarbeid</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- SCREEN: Hjem -->
+    <div class="screen active" id="screen-hjem">
+      <div id="today-card-container"></div>
+
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-val" id="stat-phase">1/4</div><div class="stat-lbl">Fase</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-weeks">0</div><div class="stat-lbl">Uker igjen</div></div>
+        <div class="stat-box"><div class="stat-val">2</div><div class="stat-lbl">Styrke/uke</div></div>
+      </div>
+
+      <div class="section-title">Fremgang denne fasen</div>
+      <div class="card">
+        <div class="card-body">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;" id="phase-progress-label">Fase 1: Grunnarbeid — Jun/Jul 2026</div>
+          <div class="phase-bar-wrap"><div class="phase-bar" id="phase-progress-bar" style="width:0%"></div></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px;" id="phase-progress-text">Beregner...</div>
+        </div>
+      </div>
+
+      <div class="section-title">Nærmeste milepæler</div>
+      <div class="card">
+        <div class="card-body" style="padding:12px 16px">
+          <div class="milestone reached">Planke 40 sek ✓ (nå)</div>
+          <div class="milestone" id="milestone-sideplank">Sideplank 20 sek/side (Fase 1)</div>
+          <div class="milestone">Ettbens glute bridge (Fase 2, aug)</div>
+          <div class="milestone">Nordic curl m/strikk (Fase 3, okt)</div>
+          <div class="milestone">Planke 70 sek (Fase 4, des)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN: Dagens økt -->
+    <div class="screen" id="screen-okt">
+      <div id="session-content"></div>
+    </div>
+
+    <!-- SCREEN: Øvelser -->
+    <div class="screen" id="screen-oevelser">
+      <div class="section-title">Alle øvelser</div>
+      <div class="pills">
+        <div class="pill active" onclick="filterEx('all',this)">Alle</div>
+        <div class="pill" onclick="filterEx('str',this)">💪 Styrke</div>
+        <div class="pill" onclick="filterEx('core',this)">🏋️ Core</div>
+        <div class="pill" onclick="filterEx('speed',this)">⚡ Hurtighet</div>
+        <div class="pill" onclick="filterEx('mob',this)">🧘 Mobilitet</div>
+      </div>
+      <div id="all-exercises"></div>
+    </div>
+
+    <!-- SCREEN: Faser -->
+    <div class="screen" id="screen-faser">
+      <div class="section-title">Langsiktig program 2026</div>
+      <div class="note-green note-box">Programmet er delt i 4 faser frem til desember 2026. Hver fase bygger på forrige. Ingen hastverk – teknikk og mestring kommer alltid før belastning.</div>
+      <div id="phases-content"></div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" onclick="showScreen('hjem',this)" id="nav-hjem">
+      <span class="nav-icon">🏠</span>Hjem
+    </button>
+    <button class="nav-btn" onclick="showScreen('okt',this)" id="nav-okt">
+      <span class="nav-icon">💪</span>Økt
+    </button>
+    <button class="nav-btn" onclick="showScreen('oevelser',this)" id="nav-oevelser">
+      <span class="nav-icon">📋</span>Øvelser
+    </button>
+    <button class="nav-btn" onclick="showScreen('faser',this)" id="nav-faser">
+      <span class="nav-icon">📈</span>Faser
+    </button>
+  </div>
+
+</div><!-- /app -->
+
+<!-- Exercise modal -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-sets" id="modal-sets"></div>
+    <div class="modal-tip" id="modal-tip"></div>
+    <button class="modal-close" onclick="closeModal()">Lukk</button>
+  </div>
+</div>
+
+<script>
+// ─────────── DATA ───────────
+
+const PHASES = [
+  {
+    id:1, name:"Fase 1", label:"Grunnarbeid",
+    months:"Jun – Jul 2026",
+    start:new Date(2026,5,1), end:new Date(2026,7,1),
+    goal:"Etablere bevegelsesmønstre og aktivere riktige muskler. Øvelser du mestrer nå.",
+    milestones:["Sideplank 20 sek/side","Dead bug kontrollert","Hip thrust stabilt"],
+    sessionA:[
+      {e:"🍑",n:"Glute bridge (tobens)",s:"3 × 12",t:"str",tip:"Press hofter opp og hold 2 sekunder på topp. Kjenn at setet jobber."},
+      {e:"🦵",n:"Baklengs utfall",s:"3 × 10/ben",t:"str",tip:"Steg bakover, senk kontrollert ned på 3 sekunder. Fremre kne over tå."},
+      {e:"🙆",n:"Good mornings (kroppsvekt)",s:"3 × 10",t:"str",tip:"Rett rygg, bøy fremover i hoften. Du skal kjenne strekk bak på låret."},
+      {e:"🦿",n:"Hamstring curl (strikk)",s:"3 × 12",t:"str",tip:"Ligg på magen. Fester strikk rundt ankelen og krøller hælen mot rumpa."},
+      {e:"🪑",n:"Hip thrust mot benk",s:"3 × 10",t:"str",tip:"Skuldre på benk, press hofter rett opp. Hold 2 sek på topp."},
+      {e:"🧱",n:"Planke",s:"3 × 40 sek",t:"core",tip:"Rett linje fra hæl til hode. Ikke løft eller senk rumpa."},
+      {e:"⬛",n:"Sideliggende planke",s:"3 × 10 sek/side",t:"core",tip:"Bygg gradvis. Nå 10 sek/side er bra – målet er 20 sek mot slutten av fase 1."},
+    ],
+    sessionB:[
+      {e:"🐦",n:"Fugl-hund",s:"3 × 10/side",t:"core",tip:"Arm og motsatt ben strekkes ut. Hold 3 sekunder. Stabil korsrygg hele veien."},
+      {e:"🪲",n:"Dead bug",s:"3 × 8/side",t:"core",tip:"VIKTIG: Korsryggen må ligge mot gulvet hele øvelsen. Senk arm og motsatt ben sakte."},
+      {e:"💪",n:"Armhevinger",s:"3 × 10–12",t:"str",tip:"Rett linje fra hæl til hode. Bryst ned, press jevnt opp."},
+      {e:"🏹",n:"Roing med strikkband",s:"3 × 12",t:"str",tip:"Trekk albuen bak og klem skulderbladene sammen på topp."},
+      {e:"🛋️",n:"Hip thrust mot benk",s:"3 × 10",t:"str",tip:"Samme som i økt A. Variasjon: prøv å holde 3 sek på topp."},
+      {e:"🔄",n:"Skulderrotasjon (strikk)",s:"2 × 12/arm",t:"mob",tip:"Ekstern rotasjon, sakte og kontrollert. Viktig for skulderhelsa."},
+      {e:"🌀",n:"Skråbrett sit-up m/rotasjon",s:"3 × 10",t:"core",tip:"Pek albuen mot motsatt kne. Kontrollert bevegelse, ikke rush."},
+    ]
+  },
+  {
+    id:2, name:"Fase 2", label:"Bygging",
+    months:"Aug – Sep 2026",
+    start:new Date(2026,7,1), end:new Date(2026,9,1),
+    goal:"Introdusere ensidige (ettbens) bevegelser og hamstring-progresjon mot Nordic curl.",
+    milestones:["Ettbens glute bridge (assistert)","Hamstring slides kontrollert","Planke 55 sek","Sideplank 25 sek"],
+    sessionA:[
+      {e:"🍑",n:"Ettbens glute bridge (assistert)",s:"3 × 8/ben",t:"str",tip:"Bruk én hånd mot gulv for balanse. Press ett ben opp, hold 2 sek."},
+      {e:"🦵",n:"Baklengs utfall",s:"4 × 12/ben",t:"str",tip:"Økt reps. Ta 3 sek ned, 1 sek opp. God kontroll."},
+      {e:"🎿",n:"Hamstring slides",s:"3 × 8",t:"str",tip:"Ligg på rygg, hæler på glatt overflate. Gli bena ut og trekk inn igjen med hamstrings."},
+      {e:"🙆",n:"Romanian deadlift (ettbens)",s:"3 × 8/ben",t:"str",tip:"Stå på ett ben, senk hendene mot gulv med rett rygg. Kjenn bakside lår."},
+      {e:"🪑",n:"Hip thrust m/pause (3 sek)",s:"3 × 12",t:"str",tip:"Hold 3 sekunder på topp. Tyngre enn det høres ut!"},
+      {e:"🧱",n:"Planke",s:"3 × 50 sek",t:"core",tip:"Nå 50 sek – vær stolt! Hold jevn pust."},
+      {e:"⬛",n:"Sideliggende planke",s:"3 × 20–25 sek/side",t:"core",tip:"God progresjon fra fase 1. Hoften oppe!"},
+    ],
+    sessionB:[
+      {e:"🐦",n:"Fugl-hund (m/strikk mot arm)",s:"3 × 12/side",t:"core",tip:"Fester lett strikk mot armen for ekstra utfordring. Holder stabiliteten."},
+      {e:"🪲",n:"Dead bug (progresjon)",s:"3 × 10/side",t:"core",tip:"Legg til lett strikk mot armen. Ryggen mot gulvet – alltid!"},
+      {e:"💪",n:"Armhevinger",s:"3 × 12–15",t:"str",tip:"Mer reps nå. Prøv evt. å ta 2 sek ned, pause, 1 sek opp."},
+      {e:"🏹",n:"Roing med strikkband",s:"4 × 12",t:"str",tip:"Økt sett. Klem skulderbladene godt."},
+      {e:"🫧",n:"Hollow body hold",s:"3 × 15 sek",t:"core",tip:"Flat rygg mot gulvet, løft ben og armer. Buk presset inn."},
+      {e:"🔄",n:"Skulderrotasjon (strikk)",s:"2 × 15/arm",t:"mob",tip:"Økt reps. Sakte og kontrollert."},
+      {e:"🌀",n:"Skråbrett sit-up m/rotasjon",s:"3 × 12",t:"core",tip:"Mer reps. Kjenn at skrå magemuskel jobber."},
+    ]
+  },
+  {
+    id:3, name:"Fase 3", label:"Styrkeøkning",
+    months:"Okt – Nov 2026",
+    start:new Date(2026,9,1), end:new Date(2026,11,1),
+    goal:"Nordic curl med strikk-assistanse – nøkkelmilepælen. Ettbens arbeid uten hjelp.",
+    milestones:["Nordic curl m/strikk 6 reps 🎯","Ettbens glute bridge (fri)","Planke 65 sek","Sideplank 30 sek","Pallof press kontrollert"],
+    sessionA:[
+      {e:"🏆",n:"Nordic curl m/strikk-assist",s:"3 × 6–8",t:"str",tip:"NØKKELØVELSE! Strikk rundt hoften hjelper opp. Senk deg SAKTE fremover – det er nedsiden som teller. Partner holder ankler."},
+      {e:"🍑",n:"Ettbens glute bridge",s:"3 × 10/ben",t:"str",tip:"Uten assistanse nå. Du klarer det!"},
+      {e:"🎿",n:"Romanian deadlift (BW)",s:"3 × 10/ben",t:"str",tip:"Rett rygg, bøy i hoften. Kjenner bakside lår godt."},
+      {e:"🦵",n:"Baklengs utfall (lett vekt?)",s:"4 × 12/ben",t:"str",tip:"Prøv å hold 1–2 kg i hendene om det er enkelt. Fortsatt fokus på teknikk."},
+      {e:"🪑",n:"Ettbens hip thrust",s:"3 × 8/ben",t:"str",tip:"Skuldre på benk, ett ben i lufta. Press opp med det benet som er på gulvet."},
+      {e:"🧱",n:"Planke",s:"3 × 60 sek",t:"core",tip:"Et minutt! Hold hodet nøytralt."},
+      {e:"⬛",n:"Sideliggende planke",s:"3 × 25–30 sek/side",t:"core",tip:"Nærmer seg 30 sek – flott fremgang!"},
+    ],
+    sessionB:[
+      {e:"🪲",n:"Dead bug (strikk)",s:"3 × 10/side",t:"core",tip:"Strikk mot armen. Ryggen mot gulvet alltid!"},
+      {e:"🎯",n:"Pallof press",s:"3 × 10/side",t:"core",tip:"NY ØVELSE: Strikk fra siden, press hendene rett frem og hold. Motstå rotasjon – kjernemuskulatur aktiveres."},
+      {e:"💪",n:"Armhevinger",s:"3 × 12–15",t:"str",tip:"Evt. med én fot hevet for ekstra utfordring."},
+      {e:"🏹",n:"Roing med strikkband",s:"4 × 12",t:"str",tip:"Solid og stabilt. Husk skulderbladene."},
+      {e:"🫧",n:"Hollow body hold",s:"3 × 25 sek",t:"core",tip:"Økt tid. Buk inn, pust jevnt."},
+      {e:"⚙️",n:"Ab wheel (på knær)",s:"3 × 6–8",t:"core",tip:"NY ØVELSE: Rull sakte fremover, rett rygg. Trekk tilbake med magemusklene."},
+      {e:"🔄",n:"Skulderrotasjon (strikk)",s:"2 × 15/arm",t:"mob",tip:"Vedlikehold. Sakte."},
+    ]
+  },
+  {
+    id:4, name:"Fase 4", label:"Konsolidering",
+    months:"Desember 2026",
+    start:new Date(2026,11,1), end:new Date(2027,0,1),
+    goal:"Konsolidere alle gains. Nordic curl med lettere strikk. Klar for 2027.",
+    milestones:["Nordic curl lettere strikk 8 reps","Ettbens RDL stabilt","Planke 70 sek","Sideplank 35 sek","Test ettbens tåhev"],
+    sessionA:[
+      {e:"🏆",n:"Nordic curl (lettere strikk)",s:"3 × 8",t:"str",tip:"Reduser strikk-assistansen gradvis. Du er nesten der! Sakte ned."},
+      {e:"🍑",n:"Ettbens RDL",s:"3 × 8/ben",t:"str",tip:"Stå på ett ben, senk hendene mot gulvet. God kontroll."},
+      {e:"🪑",n:"Ettbens hip thrust",s:"3 × 10/ben",t:"str",tip:"Økt reps. Solid og stabilt."},
+      {e:"🦵",n:"Baklengs utfall",s:"4 × 12/ben",t:"str",tip:"Vedlikehold. God teknikk."},
+      {e:"🦶",n:"Tåhev (test ettbens)",s:"3 × 10/ben",t:"str",tip:"Test om ettbens tåhev er klar. Sakte ned på 3 sek. Kun hvis tobens er helt trygg."},
+      {e:"🧱",n:"Planke",s:"3 × 70 sek",t:"core",tip:"Nesten 75 sek – imponerende fremgang fra 40 sek!"},
+      {e:"⬛",n:"Sideliggende planke",s:"3 × 30–35 sek/side",t:"core",tip:"Fra 10 sek til 35 sek – det er kjempeflott!"},
+    ],
+    sessionB:[
+      {e:"🎯",n:"Pallof press",s:"3 × 12/side",t:"core",tip:"Økt reps. Stabil og kontrollert."},
+      {e:"⚙️",n:"Ab wheel",s:"3 × 8–10",t:"core",tip:"Prøv evt. litt lenger utrulling."},
+      {e:"💪",n:"Armhevinger",s:"3 × 15",t:"str",tip:"Solid. Prøv evt. med hevet fot."},
+      {e:"🏹",n:"Roing med strikkband",s:"4 × 12",t:"str",tip:"Vedlikehold. Trekk godt tilbake."},
+      {e:"🫧",n:"Hollow body hold",s:"3 × 30 sek",t:"core",tip:"30 sek solid hold. Supert!"},
+      {e:"🪲",n:"Dead bug",s:"3 × 12/side",t:"core",tip:"Vedlikehold med god kontroll."},
+      {e:"🔄",n:"Skulderrotasjon",s:"2 × 15/arm",t:"mob",tip:"Vedlikehold alltid."},
+    ]
+  }
+];
+
+const TODAY_SESSIONS = {
+  // Sommer: 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+  sommer:{
+    0:{type:'rest',label:'Fridag 😴',sub:'Hvil og nyt dagen',emoji:'😴',cls:'rest'},
+    1:{type:'football',label:'Fotballtrening',sub:'Mandag treningsdag ⚽',emoji:'⚽',cls:'football'},
+    2:{type:'strength',label:'Styrke A 💪',sub:'Kamp? → Ellers styrkeøkt A',emoji:'💪',cls:''},
+    3:{type:'football',label:'Fotballtrening',sub:'Onsdag treningsdag ⚽',emoji:'⚽',cls:'football'},
+    4:{type:'strength',label:'Styrke B 🏋️',sub:'Kamp? → Ellers styrkeøkt B',emoji:'🏋️',cls:''},
+    5:{type:'football',label:'Fotballtrening',sub:'Fredag treningsdag ⚽',emoji:'⚽',cls:'football'},
+    6:{type:'optional',label:'Valgfritt ⚡',sub:'Kamp? → Ellers hurtighets­økt (valgfritt)',emoji:'⚡',cls:'optional'},
+  },
+  vinter:{
+    0:{type:'rest',label:'Fridag 😴',sub:'Hvil og nyt dagen',emoji:'😴',cls:'rest'},
+    1:{type:'strength',label:'Styrke A 💪',sub:'Mandag styrkeøkt A',emoji:'💪',cls:''},
+    2:{type:'football',label:'Fotballtrening',sub:'Tirsdag treningsdag ⚽',emoji:'⚽',cls:'football'},
+    3:{type:'rest',label:'Hviledag',sub:'Rolig dag – la kroppen jobbe',emoji:'😴',cls:'rest'},
+    4:{type:'strength',label:'Styrke B 🏋️',sub:'Torsdag styrkeøkt B',emoji:'🏋️',cls:''},
+    5:{type:'football',label:'Fotballtrening',sub:'Fredag treningsdag ⚽',emoji:'⚽',cls:'football'},
+    6:{type:'optional',label:'Valgfritt ⚡',sub:'Hurtighetsøkt (valgfritt)',emoji:'⚡',cls:'optional'},
+  }
+};
+
+const WEEK_DAYS_SOMMER = [
+  {d:'Man',type:'football',label:'Fotball',emoji:'⚽',alt:''},
+  {d:'Tir',type:'gm',label:'Kamp?',emoji:'🏆',alt:'↓ Styrke A'},
+  {d:'Ons',type:'football',label:'Fotball',emoji:'⚽',alt:''},
+  {d:'Tor',type:'gm',label:'Kamp?',emoji:'🏆',alt:'↓ Styrke B'},
+  {d:'Fre',type:'football',label:'Fotball',emoji:'⚽',alt:''},
+  {d:'Lør',type:'opt',label:'Kamp?',emoji:'🏆',alt:'↓ Hurtighet'},
+  {d:'Søn',type:'rst',label:'Hvile',emoji:'😴',alt:''},
+];
+
+// ─────────── STATE ───────────
+let currentPhaseId = 1;
+let completedExercises = {};
+
+function getCurrentPhase(){
+  const now = new Date();
+  for(const p of PHASES){
+    if(now >= p.start && now < p.end) return p;
+  }
+  if(now < PHASES[0].start) return PHASES[0];
+  return PHASES[PHASES.length-1];
+}
+
+function isSummer(){
+  const m = new Date().getMonth(); // 0-based
+  return m >= 4 && m <= 9; // May-Oct
+}
+
+function getDaySession(){
+  const dow = new Date().getDay();
+  const schedule = isSummer() ? TODAY_SESSIONS.sommer : TODAY_SESSIONS.vinter;
+  return schedule[dow];
+}
+
+function getPhaseProgress(phase){
+  const now = new Date();
+  if(now < phase.start) return 0;
+  if(now >= phase.end) return 100;
+  const total = phase.end - phase.start;
+  const elapsed = now - phase.start;
+  return Math.round(elapsed/total*100);
+}
+
+function getWeeksRemaining(phase){
+  const now = new Date();
+  if(now >= phase.end) return 0;
+  const ms = phase.end - now;
+  return Math.round(ms/(7*24*3600*1000));
+}
+
+// ─────────── RENDER HOME ───────────
+function renderHome(){
+  const phase = getCurrentPhase();
+  currentPhaseId = phase.id;
+
+  // Header
+  const days=['Søndag','Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag'];
+  const months=['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+  const now = new Date();
+  document.getElementById('header-date').textContent = days[now.getDay()]+' '+now.getDate()+'. '+months[now.getMonth()]+' '+now.getFullYear();
+  document.getElementById('phase-pill').innerHTML = phase.name+'<span>'+phase.label+'</span>';
+
+  // Stats
+  document.getElementById('stat-phase').textContent = phase.id+'/4';
+  document.getElementById('stat-weeks').textContent = getWeeksRemaining(phase);
+
+  // Phase progress
+  const pct = getPhaseProgress(phase);
+  document.getElementById('phase-progress-label').textContent = phase.name+': '+phase.label+' — '+phase.months;
+  document.getElementById('phase-progress-bar').style.width = pct+'%';
+  document.getElementById('phase-progress-text').textContent = pct < 5 ? 'Fasen starter snart!' : pct >= 100 ? 'Fase fullført! 🎉' : pct+'% fullført av fasen';
+
+  // Today card
+  const sess = getDaySession();
+  let btn = '';
+  if(sess.type==='strength'){
+    const sessionLabel = sess.label.includes('A') ? 'A' : 'B';
+    btn = `<button class="today-btn" onclick="goToSession('${sessionLabel}')">Se øvelsene →</button>`;
+  }
+  document.getElementById('today-card-container').innerHTML=`
+    <div class="today-card ${sess.cls}">
+      <div class="today-emoji">${sess.emoji}</div>
+      <div class="today-type">${sess.label}</div>
+      <div class="today-sub">${sess.sub}</div>
+      ${btn}
+    </div>`;
+}
+
+// ─────────── RENDER SESSION ───────────
+function renderSession(which){
+  const phase = getCurrentPhase();
+  const exercises = which==='A' ? phase.sessionA : phase.sessionB;
+  const key = 'done_'+phase.id+'_'+which+'_'+new Date().toDateString();
+  const saved = JSON.parse(localStorage.getItem(key)||'{}');
+
+  const done = Object.values(saved).filter(Boolean).length;
+  const total = exercises.length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  let completeEmoji = pct===100 ? '🎉' : pct > 50 ? '💪' : '🏋️';
+
+  let html = `
+    <div class="session-header">
+      <div class="session-icon">${which==='A' ? '💪' : '🏋️'}</div>
+      <div>
+        <div class="session-title">Styrke ${which} – ${phase.name}</div>
+        <div class="session-desc">${phase.label} · ${which==='A' ? 'Underkropp & Hamstring' : 'Overkropp & Core'}</div>
+      </div>
+    </div>
+    <div class="completion-bar">
+      <div><div class="completion-count">${done}/${total}</div><div class="completion-text">øvelser fullført i dag</div></div>
+      <div class="completion-emoji">${completeEmoji}</div>
+    </div>`;
+
+  exercises.forEach((ex,i)=>{
+    const isDone = !!saved[i];
+    html+=`<div class="ex-item" onclick="toggleEx(this,${i},'${key}')">
+      <div class="ex-emoji">${ex.e}</div>
+      <div class="ex-info">
+        <div class="ex-name">${ex.n}</div>
+        <div class="ex-sets">${ex.s}</div>
+        <div class="ex-tip">${ex.tip}</div>
+      </div>
+      <div class="ex-check ${isDone?'done':''}" onclick="checkEx(event,${i},'${key}')">
+        <span class="check-icon">✓</span>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('session-content').innerHTML=html;
+}
+
+function toggleEx(el,i,key){
+  el.classList.toggle('open');
+}
+
+function checkEx(event,i,key){
+  event.stopPropagation();
+  const saved=JSON.parse(localStorage.getItem(key)||'{}');
+  saved[i]=!saved[i];
+  localStorage.setItem(key,JSON.stringify(saved));
+  // Re-render session
+  const which = key.includes('_A_') ? 'A' : 'B';
+  renderSession(which);
+}
+
+function goToSession(which){
+  renderSession(which);
+  showScreen('okt', document.getElementById('nav-okt'));
+}
+
+// ─────────── RENDER ALL EXERCISES ───────────
+function renderAllExercises(){
+  const phase = getCurrentPhase();
+  const allEx = [...phase.sessionA,...phase.sessionB];
+  // deduplicate by name
+  const seen = new Set();
+  const unique = allEx.filter(e=>{ if(seen.has(e.n)) return false; seen.add(e.n); return true; });
+
+  let html='';
+  unique.forEach(ex=>{
+    html+=`<div class="ex-item" data-type="${ex.t}" onclick="openModal('${ex.n.replace(/'/g,"\\'")}','${ex.s.replace(/'/g,"\\'")}','${ex.tip.replace(/'/g,"\\'")}')">
+      <div class="ex-emoji">${ex.e}</div>
+      <div class="ex-info">
+        <div class="ex-name">${ex.n}</div>
+        <div class="ex-sets">${ex.s} · <span class="badge badge-${ex.t==='str'?'str':ex.t==='core'?'core':ex.t==='speed'?'speed':'mob'}">${ex.t==='str'?'Styrke':ex.t==='core'?'Core':ex.t==='speed'?'Hurtighet':'Mobilitet'}</span></div>
+      </div>
+      <div style="font-size:18px;color:var(--muted);margin-top:4px">›</div>
+    </div>`;
+  });
+  document.getElementById('all-exercises').innerHTML=html;
+}
+
+function filterEx(type,el){
+  document.querySelectorAll('.pills .pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#all-exercises .ex-item').forEach(row=>{
+    row.style.display=(type==='all'||row.dataset.type===type)?'':'none';
+  });
+}
+
+// ─────────── RENDER PHASES ───────────
+function renderPhases(){
+  let html='';
+  const now = new Date();
+  const currentPhase = getCurrentPhase();
+
+  PHASES.forEach((p,idx)=>{
+    const done = now >= p.end;
+    const current = p.id === currentPhase.id;
+    const dotCls = done?'done':current?'current':'future';
+    const dotTxt = done?'✓':current?'▶':''+p.id;
+
+    html+=`<div class="phase-row">
+      <div class="phase-dot ${dotCls}">${dotTxt}</div>
+      <div class="phase-line">
+        <div class="phase-title-row">${p.name} – ${p.label}</div>
+        <div class="phase-months">${p.months}</div>
+        <div class="phase-goal">${p.goal}</div>
+        <div class="milestone-list">`;
+    p.milestones.forEach(m=>{
+      html+=`<div class="milestone">${m}</div>`;
+    });
+    html+=`</div></div></div>`;
+
+    if(idx < PHASES.length-1){
+      html+=`<div style="display:flex;gap:0;margin-bottom:0;padding-left:13px"><div class="phase-divider"></div></div>`;
+    }
+  });
+  document.getElementById('phases-content').innerHTML=html;
+}
+
+// ─────────── MODAL ───────────
+function openModal(name,sets,tip){
+  document.getElementById('modal-title').textContent=name;
+  document.getElementById('modal-sets').textContent=sets;
+  document.getElementById('modal-tip').textContent=tip;
+  document.getElementById('modal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closeModal(e){
+  if(e && e.target!==document.getElementById('modal')) return;
+  document.getElementById('modal').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+// ─────────── NAVIGATION ───────────
+function showScreen(id,btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+
+  if(id==='okt'){
+    const sess = getDaySession();
+    const which = sess.type==='strength' ? (sess.label.includes('A')?'A':'B') : 'A';
+    renderSession(which);
+  }
+  if(id==='oevelser') renderAllExercises();
+  if(id==='faser') renderPhases();
+}
+
+// ─────────── WEEK PLAN (render inside today screen as bonus) ───────────
+
+// ─────────── INIT ───────────
+function init(){
+  renderHome();
+
+  // Session toggle A/B
+  const sess=getDaySession();
+  if(document.getElementById('nav-okt')){
+    document.getElementById('nav-okt').innerHTML=`<span class="nav-icon">${sess.type==='strength'?'💪':'⚽'}</span>Økt`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+// Service Worker registration
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
