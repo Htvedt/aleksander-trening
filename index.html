@@ -96,9 +96,10 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .day-box.gm{border-color:var(--amber);background:var(--amber-light)}
 .day-box.opt{border-style:dashed;border-color:#9ca3af;background:#f9fafb}
 .day-box.rst{opacity:.4}
-.day-box.today-box{box-shadow:0 0 0 2px var(--green);transform:scale(1.04)}
+.day-box.today-box{box-shadow:0 0 0 2.5px #1a1a2e;transform:scale(1.07);z-index:1;position:relative;}
 .day-name{font-size:8px;font-weight:700;color:var(--muted);text-transform:uppercase}
-.day-emoji{font-size:16px;margin:2px 0}
+.today-tag{font-size:7px;font-weight:700;background:#1a1a2e;color:#fff;border-radius:3px;padding:1px 4px;letter-spacing:.03em;margin-bottom:1px;}
+.day-emoji{font-size:16px;margin:1px 0}
 .day-label{font-size:9px;font-weight:700;color:var(--text)}
 .day-alt{font-size:8px;color:var(--amber);font-weight:600}
 
@@ -179,6 +180,8 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     <!-- SCREEN: Hjem -->
     <div class="screen active" id="screen-hjem">
       <div id="today-card-container"></div>
+
+      <div id="week-plan-container"></div>
 
       <div class="stats-row">
         <div class="stat-box"><div class="stat-val" id="stat-phase">1/4</div><div class="stat-lbl">Fase</div></div>
@@ -392,13 +395,23 @@ const TODAY_SESSIONS = {
 };
 
 const WEEK_DAYS_SOMMER = [
-  {d:'Man',type:'football',label:'Fotball',emoji:'⚽',alt:''},
-  {d:'Tir',type:'gm',label:'Kamp?',emoji:'🏆',alt:'↓ Styrke A'},
-  {d:'Ons',type:'football',label:'Fotball',emoji:'⚽',alt:''},
-  {d:'Tor',type:'gm',label:'Kamp?',emoji:'🏆',alt:'↓ Styrke B'},
-  {d:'Fre',type:'football',label:'Fotball',emoji:'⚽',alt:''},
-  {d:'Lør',type:'opt',label:'Kamp?',emoji:'🏆',alt:'↓ Hurtighet'},
-  {d:'Søn',type:'rst',label:'Hvile',emoji:'😴',alt:''},
+  {d:'Man', jsDay:1, type:'fb',  label:'Fotball',  emoji:'⚽', alt:''},
+  {d:'Tir', jsDay:2, type:'gm',  label:'Kamp?',    emoji:'🏆', alt:'↓ Styrke A'},
+  {d:'Ons', jsDay:3, type:'fb',  label:'Fotball',  emoji:'⚽', alt:''},
+  {d:'Tor', jsDay:4, type:'gm',  label:'Kamp?',    emoji:'🏆', alt:'↓ Styrke B'},
+  {d:'Fre', jsDay:5, type:'fb',  label:'Fotball',  emoji:'⚽', alt:''},
+  {d:'Lør', jsDay:6, type:'opt', label:'Kamp?',    emoji:'🏆', alt:'↓ Hurtighet'},
+  {d:'Søn', jsDay:0, type:'rst', label:'Hvile',    emoji:'😴', alt:''},
+];
+
+const WEEK_DAYS_VINTER = [
+  {d:'Man', jsDay:1, type:'str', label:'Styrke A', emoji:'💪', alt:''},
+  {d:'Tir', jsDay:2, type:'fb',  label:'Fotball',  emoji:'⚽', alt:''},
+  {d:'Ons', jsDay:3, type:'rst', label:'Hvile',    emoji:'😴', alt:''},
+  {d:'Tor', jsDay:4, type:'str', label:'Styrke B', emoji:'🏋️', alt:''},
+  {d:'Fre', jsDay:5, type:'fb',  label:'Fotball',  emoji:'⚽', alt:''},
+  {d:'Lør', jsDay:6, type:'opt', label:'Valgfritt',emoji:'⚡', alt:'Hurtighet'},
+  {d:'Søn', jsDay:0, type:'rst', label:'Hvile',    emoji:'😴', alt:''},
 ];
 
 // ─────────── STATE ───────────
@@ -441,6 +454,29 @@ function getWeeksRemaining(phase){
   return Math.round(ms/(7*24*3600*1000));
 }
 
+// ─────────── RENDER WEEK PLAN ───────────
+function renderWeekPlan(){
+  const today = new Date().getDay(); // 0=Sun … 6=Sat
+  const days = isSummer() ? WEEK_DAYS_SOMMER : WEEK_DAYS_VINTER;
+  const label = isSummer() ? 'Sommer' : 'Vinter';
+
+  let html = `<div class="section-title">Ukeplan – ${label}</div><div class="week-grid">`;
+  days.forEach(day => {
+    const isToday = day.jsDay === today;
+    const todayTag = isToday ? '<div class="today-tag">I DAG</div>' : '';
+    const altHtml = day.alt ? `<div class="day-alt">${day.alt}</div>` : '';
+    html += `<div class="day-box ${day.type}${isToday ? ' today-box' : ''}">
+      <div class="day-name">${day.d}</div>
+      ${todayTag}
+      <div class="day-emoji">${day.emoji}</div>
+      <div class="day-label">${day.label}</div>
+      ${altHtml}
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('week-plan-container').innerHTML = html;
+}
+
 // ─────────── RENDER HOME ───────────
 function renderHome(){
   const phase = getCurrentPhase();
@@ -462,6 +498,9 @@ function renderHome(){
   document.getElementById('phase-progress-label').textContent = phase.name+': '+phase.label+' — '+phase.months;
   document.getElementById('phase-progress-bar').style.width = pct+'%';
   document.getElementById('phase-progress-text').textContent = pct < 5 ? 'Fasen starter snart!' : pct >= 100 ? 'Fase fullført! 🎉' : pct+'% fullført av fasen';
+
+  // Week plan
+  renderWeekPlan();
 
   // Today card
   const sess = getDaySession();
