@@ -377,11 +377,11 @@ const TODAY_SESSIONS = {
   sommer:{
     0:{type:'rest',label:'Fridag 😴',sub:'Hvil og nyt dagen',emoji:'😴',cls:'rest'},
     1:{type:'football',label:'Fotballtrening',sub:'Mandag treningsdag ⚽',emoji:'⚽',cls:'football'},
-    2:{type:'strength',label:'Styrke A 💪',sub:'Kamp? → Ellers styrkeøkt A',emoji:'💪',cls:''},
+    2:{type:'strength',label:'Styrke 💪',sub:'Kamp? → Ellers styrkeøkt',emoji:'💪',cls:''},
     3:{type:'football',label:'Fotballtrening',sub:'Onsdag treningsdag ⚽',emoji:'⚽',cls:'football'},
-    4:{type:'strength',label:'Styrke B 🏋️',sub:'Kamp? → Ellers styrkeøkt B',emoji:'🏋️',cls:''},
+    4:{type:'strength',label:'Styrke 💪',sub:'Kamp? → Ellers styrkeøkt',emoji:'💪',cls:''},
     5:{type:'football',label:'Fotballtrening',sub:'Fredag treningsdag ⚽',emoji:'⚽',cls:'football'},
-    6:{type:'optional',label:'Valgfritt ⚡',sub:'Kamp? → Ellers hurtighets­økt (valgfritt)',emoji:'⚡',cls:'optional'},
+    6:{type:'strength',label:'Styrke 💪',sub:'Kamp? → Ellers styrkeøkt',emoji:'💪',cls:''},
   },
   vinter:{
     0:{type:'rest',label:'Fridag 😴',sub:'Hvil og nyt dagen',emoji:'😴',cls:'rest'},
@@ -400,7 +400,7 @@ const WEEK_DAYS_SOMMER = [
   {d:'Ons', jsDay:3, type:'fb',  label:'Fotball',  emoji:'⚽', alt:''},
   {d:'Tor', jsDay:4, type:'gm',  label:'Kamp?',    emoji:'🏆', alt:'↓ Styrke B'},
   {d:'Fre', jsDay:5, type:'fb',  label:'Fotball',  emoji:'⚽', alt:''},
-  {d:'Lør', jsDay:6, type:'opt', label:'Kamp?',    emoji:'🏆', alt:'↓ Hurtighet'},
+  {d:'Lør', jsDay:6, type:'gm',  label:'Kamp?',    emoji:'🏆', alt:'↓ Styrke'},
   {d:'Søn', jsDay:0, type:'rst', label:'Hvile',    emoji:'😴', alt:''},
 ];
 
@@ -506,8 +506,7 @@ function renderHome(){
   const sess = getDaySession();
   let btn = '';
   if(sess.type==='strength'){
-    const sessionLabel = sess.label.includes('A') ? 'A' : 'B';
-    btn = `<button class="today-btn" onclick="goToSession('${sessionLabel}')">Se øvelsene →</button>`;
+    btn = `<button class="today-btn" onclick="goToSession()">Se øvelsene →</button>`;
   }
   document.getElementById('today-card-container').innerHTML=`
     <div class="today-card ${sess.cls}">
@@ -518,65 +517,86 @@ function renderHome(){
     </div>`;
 }
 
-// ─────────── RENDER SESSION ───────────
-function renderSession(which){
+// ─────────── RENDER COMBINED SESSION ───────────
+function renderCombinedSession(){
   const phase = getCurrentPhase();
-  const exercises = which==='A' ? phase.sessionA : phase.sessionB;
-  const key = 'done_'+phase.id+'_'+which+'_'+new Date().toDateString();
-  const saved = JSON.parse(localStorage.getItem(key)||'{}');
+  const dateStr = new Date().toDateString();
 
-  const done = Object.values(saved).filter(Boolean).length;
-  const total = exercises.length;
-  const pct = total ? Math.round(done/total*100) : 0;
-  let completeEmoji = pct===100 ? '🎉' : pct > 50 ? '💪' : '🏋️';
+  const sections = [
+    {which:'A', label:'Styrke A – Underkropp & Hamstring', icon:'💪', headerCls:'green', exercises: phase.sessionA},
+    {which:'B', label:'Styrke B – Overkropp & Core',       icon:'🏋️', headerCls:'blue',  exercises: phase.sessionB},
+  ];
+
+  // Total completion across both
+  let totalDone = 0, totalEx = 0;
+  sections.forEach(({which, exercises}) => {
+    const key = `done_${phase.id}_${which}_${dateStr}`;
+    const saved = JSON.parse(localStorage.getItem(key)||'{}');
+    totalDone += Object.values(saved).filter(Boolean).length;
+    totalEx += exercises.length;
+  });
+  const completeEmoji = totalDone === totalEx && totalEx > 0 ? '🎉' : totalDone > totalEx/2 ? '💪' : '🏋️';
 
   let html = `
     <div class="session-header">
-      <div class="session-icon">${which==='A' ? '💪' : '🏋️'}</div>
+      <div class="session-icon">💪</div>
       <div>
-        <div class="session-title">Styrke ${which} – ${phase.name}</div>
-        <div class="session-desc">${phase.label} · ${which==='A' ? 'Underkropp & Hamstring' : 'Overkropp & Core'}</div>
+        <div class="session-title">Styrkeøkt – ${phase.name}</div>
+        <div class="session-desc">${phase.label} · Velg A, B eller begge</div>
       </div>
     </div>
     <div class="completion-bar">
-      <div><div class="completion-count">${done}/${total}</div><div class="completion-text">øvelser fullført i dag</div></div>
+      <div><div class="completion-count">${totalDone}/${totalEx}</div><div class="completion-text">øvelser fullført i dag (A+B)</div></div>
       <div class="completion-emoji">${completeEmoji}</div>
     </div>`;
 
-  exercises.forEach((ex,i)=>{
-    const isDone = !!saved[i];
-    html+=`<div class="ex-item" onclick="toggleEx(this,${i},'${key}')">
-      <div class="ex-emoji">${ex.e}</div>
-      <div class="ex-info">
-        <div class="ex-name">${ex.n}</div>
-        <div class="ex-sets">${ex.s}</div>
-        <div class="ex-tip">${ex.tip}</div>
+  sections.forEach(({which, label, icon, headerCls, exercises}) => {
+    const key = `done_${phase.id}_${which}_${dateStr}`;
+    const saved = JSON.parse(localStorage.getItem(key)||'{}');
+    const done = Object.values(saved).filter(Boolean).length;
+
+    html += `<div class="card" style="margin-bottom:12px;">
+      <div class="card-header ${headerCls}">
+        ${icon} ${label}
+        <span style="margin-left:auto;font-size:11px;opacity:.7;">${done}/${exercises.length}</span>
       </div>
-      <div class="ex-check ${isDone?'done':''}" onclick="checkEx(event,${i},'${key}')">
-        <span class="check-icon">✓</span>
-      </div>
-    </div>`;
+      <div class="card-body" style="padding:4px 16px;">`;
+
+    exercises.forEach((ex,i) => {
+      const isDone = !!saved[i];
+      html += `<div class="ex-item" onclick="toggleEx(this)">
+        <div class="ex-emoji">${ex.e}</div>
+        <div class="ex-info">
+          <div class="ex-name">${ex.n}</div>
+          <div class="ex-sets">${ex.s}</div>
+          <div class="ex-tip">${ex.tip}</div>
+        </div>
+        <div class="ex-check ${isDone?'done':''}" onclick="checkEx(event,${i},'${key}')">
+          <span class="check-icon">✓</span>
+        </div>
+      </div>`;
+    });
+
+    html += `</div></div>`;
   });
 
-  document.getElementById('session-content').innerHTML=html;
+  document.getElementById('session-content').innerHTML = html;
 }
 
-function toggleEx(el,i,key){
+function toggleEx(el){
   el.classList.toggle('open');
 }
 
 function checkEx(event,i,key){
   event.stopPropagation();
-  const saved=JSON.parse(localStorage.getItem(key)||'{}');
-  saved[i]=!saved[i];
-  localStorage.setItem(key,JSON.stringify(saved));
-  // Re-render session
-  const which = key.includes('_A_') ? 'A' : 'B';
-  renderSession(which);
+  const saved = JSON.parse(localStorage.getItem(key)||'{}');
+  saved[i] = !saved[i];
+  localStorage.setItem(key, JSON.stringify(saved));
+  renderCombinedSession();
 }
 
-function goToSession(which){
-  renderSession(which);
+function goToSession(){
+  renderCombinedSession();
   showScreen('okt', document.getElementById('nav-okt'));
 }
 
@@ -664,9 +684,7 @@ function showScreen(id,btn){
   if(btn) btn.classList.add('active');
 
   if(id==='okt'){
-    const sess = getDaySession();
-    const which = sess.type==='strength' ? (sess.label.includes('A')?'A':'B') : 'A';
-    renderSession(which);
+    renderCombinedSession();
   }
   if(id==='oevelser') renderAllExercises();
   if(id==='faser') renderPhases();
